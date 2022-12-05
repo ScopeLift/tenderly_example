@@ -1,0 +1,13 @@
+{
+    "name": "endaoment",
+    "scripts": {
+        "build": "tsc"
+    },
+    "devDependencies": {
+        "typescript": "^4.3.5"
+    },
+    "dependencies": {
+        "@tenderly/actions": "^0.0.8"
+    },
+    "private": true
+}

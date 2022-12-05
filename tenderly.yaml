@@ -1,0 +1,29 @@
+account_id: ""
+actions:
+  johnfromscopelift/project:
+    runtime: v1
+    sources: endaoment
+    specs:
+      blockexample:
+        description: A block example.
+        function: example:blockHelloWorldFn
+        trigger:
+          type: block
+          block: 
+            network: 1
+            blocks: 1
+      tranexample:
+        description: A transaction example
+        function: example:transactionExample
+        trigger:
+          type: transaction
+          transaction:
+            status: mined
+            filters:
+              - network: 1
+                status: success
+                logEmitted:
+                  startsWith:
+                  # and topics of the log entry must start with either one of these
+                  - 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef
+project_slug: ""
