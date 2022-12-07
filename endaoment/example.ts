@@ -32,9 +32,17 @@ export const blockHelloWorldFn: ActionFn = async (context: Context, event: Event
 		{
 		  headers: { 'X-Access-Key': 'bC1rqQM2VD2h8edq1cK41OhXSOl-VxLs' },
 		});
-	  console.log(`We have ${res.data.length} configured contracts for monitoring`);
-	  const elements: Element[] = res.data;
-	  await context.storage.putJson("CONTRACTS", { elements: elements } );
+		const elements: Element[] = res.data;
+		console.log(`We have ${elements.length} configured contracts for monitoring`);
+	    // THIS DOESN"T WORK
+		// await context.storage.putJson("CONTRACTS", { elements } );
+		// SO WE'RE DOING THIS FOR NOW
+		let counter = 0;
+		while (counter < elements.length) {
+			console.log(`wrote an address ${elements[counter].contract.address} with Counter${counter}`);
+			await context.storage.putStr(`Counter${counter}`, elements[counter].contract.address);
+			counter = counter + 1;
+		}
 	} catch (e) {
 	  console.log(`We got a POST error ${e}`)
 	}
@@ -42,13 +50,30 @@ export const blockHelloWorldFn: ActionFn = async (context: Context, event: Event
 
 export const transactionExample: ActionFn = async (context: Context, event: Event) => {
 	let targetList: string[] = [];
-	try {
-	  const elements: Element[] = await context.storage.getJson("CONTRACTS");
-	  elements.forEach(element => {
-		targetList.push(element.contract.address);
-	  });
-	} catch (e) {
-		console.log(`Error getting contract addresses from JSON storage - ${e}`);
+	// THIS DOESN"T WORK
+	//   const elements: Element[] = await context.storage.getJson("CONTRACTS");
+	//   elements.forEach(element => {
+	// 	targetList.push(element.contract.address);
+	//   });
+	// SO WE'RE DOING THIS FOR NOW
+	let counter = 0;
+	while (counter < 50000) {
+		try {
+		  const contractAddress = await context.storage.getStr(`Counter${counter}`);
+		  if ((contractAddress == null) || (!contractAddress.includes("0x"))) {
+            counter = 50000;
+			if (contractAddress == null) {
+			  console.log("got a null in read loop");
+			} else {
+			  console.log(`read something unexpected in read loop: ${contractAddress}`);
+			}
+		  } else {
+		    targetList.push(contractAddress)
+		  }
+		} catch {
+			counter = 50000;
+		}
+		counter = counter + 1;
 	}
     let txEvent = event as TransactionEvent;
 	console.log(`targetList has ${targetList.length} contract addresses in it.`)
