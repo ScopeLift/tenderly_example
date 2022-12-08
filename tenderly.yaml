@@ -4,26 +4,40 @@ actions:
     runtime: v1
     sources: endaoment
     specs:
-      blockexample:
-        description: A block example.
-        function: example:blockHelloWorldFn
+      blockReceived:
+        description: A block received trigger.
+        function: example:blockTrigger
         trigger:
           type: block
           block: 
-            network: 1
+            network: 5
             blocks: 1
-      tranexample:
-        description: A transaction example
-        function: example:transactionExample
+      orgFundFactoryDeployReceived:
+        description: An Entity deploy was received from the OrgFundFactory
+        function: example:orgFundFactoryTrigger
         trigger:
           type: transaction
           transaction:
             status: mined
             filters:
-              - network: 1
+              - network: 5
                 status: success
                 logEmitted:
                   startsWith:
-                  # and topics of the log entry must start with either one of these
+                  # and topics of the log entry starting with this Entity deploys
+                  - 0x1e3e29fb0c05e0c478577b9b3e207cbfe2952b1f9b239ed5d2535d4b24b6c577
+      erc20TransferReceived:
+        description: An ERC20 transfer transaction received trigger.
+        function: example:erc20TransferTrigger
+        trigger:
+          type: transaction
+          transaction:
+            status: mined
+            filters:
+              - network: 5
+                status: success
+                logEmitted:
+                  startsWith:
+                  # and topics of the log entry starting with this are ERC20 transfers
                   - 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef
 project_slug: ""
