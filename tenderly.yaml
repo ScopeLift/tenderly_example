@@ -4,17 +4,9 @@ actions:
     runtime: v1
     sources: endaoment
     specs:
-      blockReceived:
-        description: A block received trigger.
-        function: example:blockTrigger
-        trigger:
-          type: block
-          block: 
-            network: 5
-            blocks: 1
       orgFundFactoryDeployReceived:
         description: A transaction on the OrgFundFactory contract received trigger.
-        function: example:orgFundFactoryTrigger
+        function: example:transactionTrigger
         trigger:
           type: transaction
           transaction:
@@ -26,7 +18,7 @@ actions:
                 to: 0x10fd9348136dcea154f752fe0b6db45fc298a589
       erc20TransferReceived:
         description: An ERC20 transfer transaction received trigger.
-        function: example:erc20TransferTrigger
+        function: example:transactionTrigger
         trigger:
           type: transaction
           transaction:

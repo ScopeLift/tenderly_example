@@ -2,11 +2,10 @@ import {
 	ActionFn,
 	Context,
 	Event,
-	BlockEvent,
 	TransactionEvent,
 } from '@tenderly/actions';
 
-import { contractsGetter, contractPoster, transactionPoster } from './web';
+import { tenderlyContractsGetter, tenderlyContractPoster, endaomentTransactionPoster } from './web-apis';
 
 const { ethers } = require("ethers");
 
@@ -27,75 +26,77 @@ const orgFundFactoryAddress = "0x10fd9348136dcea154f752fe0b6db45fc298a589";
 const transferSig = keccak256(toUtf8Bytes("Transfer(address,address,uint256)"));
 const entityDeployedSig = "0x1e3e29fb0c05e0c478577b9b3e207cbfe2952b1f9b239ed5d2535d4b24b6c577";
 
-export const blockTrigger: ActionFn = async (context: Context, event: Event) => {
-  let blockEvent = event as BlockEvent;
-  console.log(`Got a block event.. its number is: ${blockEvent.blockNumber}`);
-  console.log(`transfer sig is: ${transferSig}`);
-  console.log(`entity deployed sig is: ${entityDeployedSig}`);
-}
-
-export const orgFundFactoryTrigger: ActionFn = async(context: Context, event: Event) => {
-  let txEvent = event as TransactionEvent;
-  if (txEvent.to == orgFundFactoryAddress) {
-    console.log(`we have an orgFundFactoryEvent with ${txEvent.logs.length}`);
-    let lognum = 0;
-    txEvent.logs.forEach(log =>  {
-      const topics = log.topics;
-      console.log(`  log ${lognum} has ${topics.length} topics`);
-      let topicnum = 0;
-      topics.forEach(topic => {
-        console.log(`    topicnum ${topicnum} is ${topic}`);
-        topicnum++;
-      });
-      lognum++;
-    });
-    const sig = txEvent.logs[1].topics[0];
-    if (sig == entityDeployedSig) {
-      const newEntityAddress = txEvent.logs[1].topics[1].replace('0x000000000000000000000000', '0x');
-      console.log(`we got an Entity address of ${newEntityAddress}`);
-      try {
-        await contractPoster("5", newEntityAddress);
-      } catch (e) {
-        console.log(`Error sending transaction hash ${txEvent.hash} to Endaoment API: ${e}`)
-      }
+/**
+ * Process OrgFundFactory "Entity Deployed" events and add new entity address to Tenderly Contracts Management API.
+ * @param txEvent - Information about the transaction that the OrgFundFactory received.
+ */
+ const orgFundFactoryHandler = async(txEvent: TransactionEvent) => {
+  console.log(`we have an orgFundFactoryEvent with ${txEvent.logs.length}`);
+  const sig = txEvent.logs[1].topics[0];
+  if (sig == entityDeployedSig) {
+    const newEntityAddress = txEvent.logs[1].topics[1].replace('0x000000000000000000000000', '0x');
+    console.log(`we got an Entity address of ${newEntityAddress}`);
+    try {
+      await tenderlyContractPoster("5", newEntityAddress);
+    } catch (e) {
+      console.log(`Error sending transaction hash ${txEvent.hash} to Endaoment API: ${e}`)
     }
-  }  
+  }
 }
 
-export const erc20TransferTrigger: ActionFn = async (context: Context, event: Event) => {
-  let txEvent = event as TransactionEvent;
-  let targetList: string[] = [];
+/**
+ * Get Entity addresses from Tenderly Contracts Management API.
+ * @returns entityList - Array of strings containing Entity contract addresses.
+ */
+ const getEntityAddresses = async (): Promise<string[]> => {
+  let entityList: string[] = [];
   try {
-    const res = await contractsGetter('https://api.tenderly.co/api/v1/account/me/project/project/contracts?accountType=contract');
+    const res = await tenderlyContractsGetter();
     const elements: Element[] = res.data;
-    console.log(`We have ${elements.length} configured contracts for monitoring`);
     elements.forEach(element => {
-      targetList.push(element.contract.address);
+      entityList.push(element.contract.address);
     });
   } catch (e) {
     console.log(`Error retrieving Entity addresses from Tenderly Contracts Management API: ${e}`)
   }
-  console.log(`targetList has ${targetList.length} contract addresses in it.`)
-  console.log(`Transaction has ${txEvent.logs.length} logs`);
+  return entityList;
+}
+
+/**
+ * Trigger action function invoked by Tenderly when a transaction matching "tenderly.yaml" filters is mined.
+ * @param context - Tenderly execution context.
+ * @param event - Information about the new transaction.
+ * @dev - If anything about the transaction matches criteria for sending to the Endaoment API, the transaction hash is sent.
+ */
+ export const transactionTrigger: ActionFn = async (context: Context, event: Event) => {
+
+  // initially assume no reason to send the transaction hash
   let foundMatch = false;
-  txEvent.logs.forEach(async (log) =>  {
-  const topics = log.topics;
-    if ( (topics.length == 3) && (topics[0] == transferSig) ) {
-      // include line below to send axios POST for every ERC20 transfer transaction hash (only target matches otherwise)
-      // foundMatch = true;
-      console.log(`Transaction has an ERC20 transfer in it: ${txEvent.hash}`);
-      if (targetList.includes(topics[1].replace('0x000000000000000000000000', '0x'))) {
-        foundMatch = true;
+
+  // test for various reasons transaction hash should be sent (right now, OrgFundFactory transaction and ERC20 Entity transaction).
+  let txEvent = event as TransactionEvent;
+  if (txEvent.to == orgFundFactoryAddress) {
+    foundMatch = true;
+    orgFundFactoryHandler(txEvent);
+  } else {
+    let entityList = await getEntityAddresses();
+    txEvent.logs.forEach(async (log) =>  {
+    const topics = log.topics;
+      if ( (topics.length == 3) && (topics[0] == transferSig) ) {
+        console.log(`Transaction has an ERC20 transfer in it: ${txEvent.hash}`);
+        if (entityList.includes(topics[1].replace('0x000000000000000000000000', '0x'))) {
+          foundMatch = true;
+        }
+        if (entityList.includes(topics[2].replace('0x000000000000000000000000', '0x'))) {
+          foundMatch = true;
+        }
       }
-      if (targetList.includes(topics[2].replace('0x000000000000000000000000', '0x'))) {
-        foundMatch = true;
-      }
-    }
-  });
+    });
+  }
   if (foundMatch) {
     try {
-      console.log(`ERC20 transfer in tx hash: ${txEvent.hash} ****************************************`);
-      await transactionPoster(txEvent.hash);
+      console.log(`Endaoment oriented transaction found, tx hash: ${txEvent.hash}`);
+      await endaomentTransactionPoster(txEvent.hash);
     } catch (e) {
       console.log(`Error sending transaction hash ${txEvent.hash} to Endaoment API: ${e}`)
     }
