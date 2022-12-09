@@ -6,7 +6,7 @@ import {
 	TransactionEvent,
 } from '@tenderly/actions';
 
-import axios from 'axios';
+import { contractsGetter, contractPoster, transactionPoster } from './web';
 
 const { ethers } = require("ethers");
 
@@ -51,8 +51,13 @@ export const orgFundFactoryTrigger: ActionFn = async(context: Context, event: Ev
     });
     const sig = txEvent.logs[1].topics[0];
     if (sig == entityDeployedSig) {
-      const newEntityAddress = txEvent.logs[1].topics[1].replace('0x000000000000000000000000', '0x')
-      console.log(`we got an Entity address of ${newEntityAddress}`)
+      const newEntityAddress = txEvent.logs[1].topics[1].replace('0x000000000000000000000000', '0x');
+      console.log(`we got an Entity address of ${newEntityAddress}`);
+      try {
+        await contractPoster("5", newEntityAddress);
+      } catch (e) {
+        console.log(`Error sending transaction hash ${txEvent.hash} to Endaoment API: ${e}`)
+      }
     }
   }  
 }
@@ -61,17 +66,14 @@ export const erc20TransferTrigger: ActionFn = async (context: Context, event: Ev
   let txEvent = event as TransactionEvent;
   let targetList: string[] = [];
   try {
-    const res = await axios.get('https://api.tenderly.co/api/v1/account/me/project/project/contracts?accountType=contract',
-    {
-      headers: { 'X-Access-Key': 'bC1rqQM2VD2h8edq1cK41OhXSOl-VxLs' },
-    });
+    const res = await contractsGetter('https://api.tenderly.co/api/v1/account/me/project/project/contracts?accountType=contract');
     const elements: Element[] = res.data;
     console.log(`We have ${elements.length} configured contracts for monitoring`);
     elements.forEach(element => {
       targetList.push(element.contract.address);
     });
   } catch (e) {
-    console.log(`We got a POST error ${e}`)
+    console.log(`Error retrieving Entity addresses from Tenderly Contracts Management API: ${e}`)
   }
   console.log(`targetList has ${targetList.length} contract addresses in it.`)
   console.log(`Transaction has ${txEvent.logs.length} logs`);
@@ -93,13 +95,9 @@ export const erc20TransferTrigger: ActionFn = async (context: Context, event: Ev
   if (foundMatch) {
     try {
       console.log(`ERC20 transfer in tx hash: ${txEvent.hash} ****************************************`);
-      await axios.post('https://b368-2603-7080-1b01-70e1-c14c-ec41-7716-beb8.ngrok.io//', { txhash: `${txEvent.hash}` }, {
-        headers: {
-          'content-type': 'text/json'
-        }
-      });
+      await transactionPoster(txEvent.hash);
     } catch (e) {
-      console.log(`We got a POST error ${e}`)
+      console.log(`Error sending transaction hash ${txEvent.hash} to Endaoment API: ${e}`)
     }
   }
 }

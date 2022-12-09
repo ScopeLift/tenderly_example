@@ -13,7 +13,7 @@ actions:
             network: 5
             blocks: 1
       orgFundFactoryDeployReceived:
-        description: An Entity deploy was received from the OrgFundFactory
+        description: A transaction on the OrgFundFactory contract received trigger.
         function: example:orgFundFactoryTrigger
         trigger:
           type: transaction
@@ -22,10 +22,8 @@ actions:
             filters:
               - network: 5
                 status: success
-                logEmitted:
-                  startsWith:
-                  # and topics of the log entry starting with this Entity deploys
-                  - 0x1e3e29fb0c05e0c478577b9b3e207cbfe2952b1f9b239ed5d2535d4b24b6c577
+                # filtering for transactions targeting this address are destined for the OrgFundFactory
+                to: 0x10fd9348136dcea154f752fe0b6db45fc298a589
       erc20TransferReceived:
         description: An ERC20 transfer transaction received trigger.
         function: example:erc20TransferTrigger
@@ -38,6 +36,6 @@ actions:
                 status: success
                 logEmitted:
                   startsWith:
-                  # and topics of the log entry starting with this are ERC20 transfers
+                  # filtering for topics of the log entry starting with this.. these are ERC20 transfers
                   - 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef
 project_slug: ""
