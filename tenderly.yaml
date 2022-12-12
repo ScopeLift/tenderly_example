@@ -6,7 +6,7 @@ actions:
     specs:
       orgFundFactoryDeployReceived:
         description: A transaction on the OrgFundFactory contract received trigger.
-        function: example:transactionTrigger
+        function: actions:transactionTrigger
         trigger:
           type: transaction
           transaction:
@@ -18,7 +18,7 @@ actions:
                 to: 0x10fd9348136dcea154f752fe0b6db45fc298a589
       erc20TransferReceived:
         description: An ERC20 transfer transaction received trigger.
-        function: example:transactionTrigger
+        function: actions:transactionTrigger
         trigger:
           type: transaction
           transaction:
