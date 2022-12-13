@@ -7,8 +7,7 @@ import {
 
 import { tenderlyContractsGetter, tenderlyContractPoster, endaomentTransactionPoster } from './web-apis';
 
-const { ethers } = require("ethers");
-
+import { ethers } from 'ethers';
 const { keccak256, toUtf8Bytes } = ethers.utils;
 
 type ContractElement = {
@@ -31,11 +30,9 @@ const entityDeployedSig = "0x1e3e29fb0c05e0c478577b9b3e207cbfe2952b1f9b239ed5d25
  * @param txEvent - Information about the transaction that the OrgFundFactory received.
  */
  const orgFundFactoryHandler = async(txEvent: TransactionEvent) => {
-  console.log(`we have an orgFundFactoryEvent with ${txEvent.logs.length}`);
   const sig = txEvent.logs[1].topics[0];
   if (sig == entityDeployedSig) {
     const newEntityAddress = txEvent.logs[1].topics[1].replace('0x000000000000000000000000', '0x');
-    console.log(`we got an Entity address of ${newEntityAddress}`);
     try {
       await tenderlyContractPoster("5", newEntityAddress);
     } catch (e) {
@@ -59,7 +56,6 @@ const entityDeployedSig = "0x1e3e29fb0c05e0c478577b9b3e207cbfe2952b1f9b239ed5d25
   } catch (e) {
     console.log(`Error retrieving Entity addresses from Tenderly Contracts Management API: ${e}`)
   }
-  console.log(`entityList has ${entityList.length} elements`)
   return entityList;
 }
 
@@ -84,7 +80,6 @@ const entityDeployedSig = "0x1e3e29fb0c05e0c478577b9b3e207cbfe2952b1f9b239ed5d25
     txEvent.logs.forEach(async (log) =>  {
     const topics = log.topics;
       if ( (topics.length == 3) && (topics[0] == transferSig) ) {
-        console.log(`Transaction has an ERC20 transfer in it: ${txEvent.hash}`);
         if (entityList.includes(topics[1].replace('0x000000000000000000000000', '0x'))) {
           foundMatch = true;
         }
@@ -96,7 +91,6 @@ const entityDeployedSig = "0x1e3e29fb0c05e0c478577b9b3e207cbfe2952b1f9b239ed5d25
   }
   if (foundMatch) {
     try {
-      console.log(`Endaoment oriented transaction found, tx hash: ${txEvent.hash}`);
       await endaomentTransactionPoster(txEvent.hash);
     } catch (e) {
       console.log(`Error sending transaction hash ${txEvent.hash} to Endaoment API: ${e}`)

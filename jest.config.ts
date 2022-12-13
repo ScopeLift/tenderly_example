@@ -10,7 +10,7 @@ const config: Config.InitialOptions = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   testPathIgnorePatterns: ['dist', 'mocks', 'integration'],
   collectCoverage: true,
-  collectCoverageFrom: ['test/*.ts'],
+  collectCoverageFrom: ['./test/*.ts'],
   testEnvironment: 'node',
   coverageReporters: ['json', 'lcov', 'text', 'clover'], // "text-summary"
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
